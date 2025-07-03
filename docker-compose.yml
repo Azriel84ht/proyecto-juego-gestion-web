@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # Servicio de Autenticación
+  auth-api:
+    build:
+      context: .
+      dockerfile: ./apps/auth-service/Dockerfile
+    ports:
+      - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
+    volumes:
+      # Monta el código para reflejar cambios en desarrollo sin reconstruir la imagen
+      - .:/usr/src/app
+      # Usa un volumen anónimo para no sobrescribir node_modules del contenedor
+      - /usr/src/app/apps/auth-service/node_modules
+    env_file:
+      - .env # Carga variables de entorno desde el archivo .env
+    depends_on:
+      - db # Asegura que la base de datos inicie antes que la API
+    networks:
+      - webnet
+    command: npm run dev --prefix apps/auth-service # Ejecuta en modo desarrollo
+
+  # Servicio de Base de Datos
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persistencia de datos
+    ports:
+      - "${DB_PORT}:5432"
+    networks:
+      - webnet
+
+# Red para la comunicación entre contenedores
+networks:
+  webnet:
+    driver: bridge
+
+# Volumen para persistir los datos de PostgreSQL
+volumes:
+  postgres_data:
