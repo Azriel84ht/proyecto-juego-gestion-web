@@ -1,20 +1,22 @@
-// Carga las variables de entorno desde el archivo .env en la raíz del proyecto
-require('dotenv').config({ path: '../../.env' });
-
+// ... otras importaciones como express, etc.
 const express = require('express');
+const { testConnection } = require('./config/db');
+const authRoutes = require('./routes/auth.routes'); // <-- 1. IMPORTA LAS RUTAS
 
 const app = express();
-// El puerto se define en el archivo .env
-const PORT = process.env.AUTH_SERVICE_PORT || 3001;
+const PORT = process.env.PORT || 3001;
 
-// Middlewares esenciales
-app.use(express.json()); // Permite al servidor entender cuerpos de solicitud en formato JSON
+// Middlewares
+app.use(express.json()); // Para que Express entienda peticiones con body en formato JSON
 
-// Ruta de prueba para verificar que el servicio está activo
-app.get('/api/auth', (req, res) => {
-  res.status(200).send('Auth Service está funcionando correctamente. 🚀');
-});
+// Probar conexión a la BD al iniciar (opcional, lo usamos para el test)
+testConnection();
+
+// Rutas de la API
+app.use('/api/auth', authRoutes); // <-- 2. USA LAS RUTAS BAJO EL PREFIJO /api/auth
+
+// ... resto de la configuración del servidor
 
 app.listen(PORT, () => {
-  console.log(`Servicio de autenticación escuchando en el puerto ${PORT}`);
+  console.log(`🚀 Auth service escuchando en el puerto ${PORT}`);
 });
