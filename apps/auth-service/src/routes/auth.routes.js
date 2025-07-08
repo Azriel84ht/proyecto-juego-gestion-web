@@ -3,7 +3,10 @@ const authController = require('../controllers/auth.controller');
 
 const router = Router();
 
-// Define la ruta POST /register y la asocia a la función del controlador
+// Ruta existente para el registro
 router.post('/register', authController.register);
+
+// Nueva ruta para el inicio de sesión
+router.post('/login', authController.login);
 
 module.exports = router;
