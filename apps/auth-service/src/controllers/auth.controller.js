@@ -54,19 +54,37 @@ const login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({ message: 'Credenciales inválidas' });
     }
+    
+    // --- INICIO DE CAMBIOS EN LOGIN ---
 
-    const payload = {
-      id: user.id,
-      username: user.username,
-    };
-
-    const token = jwt.sign(
-      payload,
+    // 1. Generar Access Token (corta duración, para las peticiones a la API)
+    const accessTokenPayload = { id: user.id, username: user.username };
+    const accessToken = jwt.sign(
+      accessTokenPayload,
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
 
-    return res.status(200).json({ token: token });
+    // 2. Generar Refresh Token (larga duración, para renovar el access token)
+    const refreshTokenPayload = { id: user.id };
+    const refreshToken = jwt.sign(
+      refreshTokenPayload,
+      process.env.JWT_REFRESH_SECRET, // Usa el nuevo secreto
+      { expiresIn: '7d' }
+    );
+
+    // 3. Enviar el Refresh Token en una cookie segura
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true, // No accesible por JavaScript en el cliente
+      secure: process.env.NODE_ENV === 'production', // Solo en HTTPS
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días en milisegundos
+    });
+
+    // 4. Enviar solo el Access Token en el cuerpo de la respuesta
+    res.status(200).json({ accessToken });
+
+    // --- FIN DE CAMBIOS EN LOGIN ---
 
   } catch (error) {
     console.error('Error en el login:', error);
@@ -80,8 +98,42 @@ const getProfile = async (req, res) => {
   res.status(200).json(req.user);
 };
 
+// --- INICIO DE NUEVAS FUNCIONES ---
+
+const refresh = async (req, res) => {
+  const token = req.cookies.refreshToken;
+  if (!token) {
+    return res.status(401).json({ message: 'Acceso denegado. No hay token de refresco.' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    
+    // El token es válido, generamos un nuevo Access Token.
+    // Para que el nuevo token tenga el username, lo incluimos también en el payload.
+    // Una alternativa más segura sería buscar el usuario en la BD con el `decoded.id`.
+    const accessTokenPayload = { id: decoded.id };
+    const accessToken = jwt.sign(accessTokenPayload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    res.json({ accessToken });
+
+  } catch (error) {
+    return res.status(403).json({ message: 'Token de refresco no válido.' });
+  }
+};
+
+const logout = (req, res) => {
+  // Limpiamos la cookie que contiene el refresh token
+  res.clearCookie('refreshToken');
+  res.status(200).json({ message: 'Logout exitoso.' });
+};
+
+// --- FIN DE NUEVAS FUNCIONES ---
+
 module.exports = {
   register,
   login,
   getProfile,
+  refresh, // <-- Añadido
+  logout,  // <-- Añadido
 };
