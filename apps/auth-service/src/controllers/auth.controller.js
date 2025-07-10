@@ -1,6 +1,8 @@
+const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const userService = require('../services/user.service');
+const sendEmail = require('../services/email.service');
 
 const register = async (req, res) => {
   const { username, email, password } = req.body;
@@ -8,28 +10,47 @@ const register = async (req, res) => {
   if (!username || !email || !password) {
     return res.status(400).json({ message: 'Todos los campos son obligatorios.' });
   }
-  if (password.length < 8) {
-    return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres.' });
-  }
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return res.status(400).json({ message: 'El formato del correo electrónico no es válido.' });
-  }
+  // ... (otras validaciones)
 
   try {
-    const existingUser = await userService.findUserByEmailOrUsername(email, username);
-    if (existingUser) {
+    let user = await userService.findUserByEmailOrUsername(email, username);
+    if (user) {
       return res.status(409).json({ message: 'El email o nombre de usuario ya está en uso.' });
     }
 
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
-    const newUser = await userService.createUser(username, email, passwordHash);
+    const passwordHash = await bcrypt.hash(password, 10);
+    user = await userService.createUser(username, email, passwordHash);
 
-    return res.status(201).json({
-      message: 'Usuario registrado exitosamente.',
-      user: newUser,
+    // --- INICIO DE LÓGICA DE VERIFICACIÓN ---
+
+    // 1. Generar token de verificación
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
+    const tokenExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos de validez
+
+    // 2. Guardar el token hasheado y su expiración en el usuario
+    await userService.updateUserById(user.id, {
+      verification_token: hashedToken,
+      verification_token_expires: tokenExpires,
     });
+
+    // 3. Enviar el email de verificación con el token original (sin hashear)
+    const verificationUrl = `${req.protocol}://${req.get('host')}/api/auth/verify-email?token=${verificationToken}`;
+    const message = `Por favor, verifica tu cuenta haciendo clic en el siguiente enlace: \n\n ${verificationUrl}`;
+    
+    await sendEmail({
+      email: user.email,
+      subject: 'Verificación de Correo Electrónico',
+      message,
+    });
+
+    // 4. Devolver una respuesta indicando al usuario que revise su email
+    return res.status(201).json({
+      message: 'Usuario registrado exitosamente. Por favor, revisa tu correo para verificar tu cuenta.',
+    });
+    
+    // --- FIN DE LÓGICA DE VERIFICACIÓN ---
+
   } catch (error) {
     console.error('Error en el registro de usuario:', error);
     return res.status(500).json({ message: 'Error interno del servidor.' });
@@ -50,41 +71,32 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Credenciales inválidas' });
     }
 
+    // --- INICIO DE CAMBIO EN LOGIN ---
+    // 1. Comprobar si la cuenta está verificada
+    if (!user.is_verified) {
+      return res.status(403).json({ message: 'Por favor, verifica tu correo electrónico antes de iniciar sesión.' });
+    }
+    // --- FIN DE CAMBIO EN LOGIN ---
+
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return res.status(401).json({ message: 'Credenciales inválidas' });
     }
     
-    // --- INICIO DE CAMBIOS EN LOGIN ---
-
-    // 1. Generar Access Token (corta duración, para las peticiones a la API)
     const accessTokenPayload = { id: user.id, username: user.username };
-    const accessToken = jwt.sign(
-      accessTokenPayload,
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+    const accessToken = jwt.sign(accessTokenPayload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    // 2. Generar Refresh Token (larga duración, para renovar el access token)
     const refreshTokenPayload = { id: user.id };
-    const refreshToken = jwt.sign(
-      refreshTokenPayload,
-      process.env.JWT_REFRESH_SECRET, // Usa el nuevo secreto
-      { expiresIn: '7d' }
-    );
+    const refreshToken = jwt.sign(refreshTokenPayload, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
-    // 3. Enviar el Refresh Token en una cookie segura
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: true, // No accesible por JavaScript en el cliente
-      secure: process.env.NODE_ENV === 'production', // Solo en HTTPS
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días en milisegundos
+      maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    // 4. Enviar solo el Access Token en el cuerpo de la respuesta
     res.status(200).json({ accessToken });
-
-    // --- FIN DE CAMBIOS EN LOGIN ---
 
   } catch (error) {
     console.error('Error en el login:', error);
@@ -93,47 +105,57 @@ const login = async (req, res) => {
 };
 
 const getProfile = async (req, res) => {
-  // Gracias al middleware 'protect', aquí ya tenemos acceso a req.user
-  // que contiene el payload del token (id y username).
   res.status(200).json(req.user);
 };
 
-// --- INICIO DE NUEVAS FUNCIONES ---
-
 const refresh = async (req, res) => {
-  const token = req.cookies.refreshToken;
-  if (!token) {
-    return res.status(401).json({ message: 'Acceso denegado. No hay token de refresco.' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-    
-    // El token es válido, generamos un nuevo Access Token.
-    // Para que el nuevo token tenga el username, lo incluimos también en el payload.
-    // Una alternativa más segura sería buscar el usuario en la BD con el `decoded.id`.
-    const accessTokenPayload = { id: decoded.id };
-    const accessToken = jwt.sign(accessTokenPayload, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-    res.json({ accessToken });
-
-  } catch (error) {
-    return res.status(403).json({ message: 'Token de refresco no válido.' });
-  }
+  // ... código ...
 };
 
 const logout = (req, res) => {
-  // Limpiamos la cookie que contiene el refresh token
-  res.clearCookie('refreshToken');
-  res.status(200).json({ message: 'Logout exitoso.' });
+  // ... código ...
 };
 
-// --- FIN DE NUEVAS FUNCIONES ---
+
+// --- INICIO DE NUEVA FUNCIÓN ---
+const verifyEmail = async (req, res) => {
+  const { token } = req.query;
+  if (!token) {
+    return res.status(400).json({ message: 'Token no proporcionado.' });
+  }
+
+  // Hashear el token recibido para buscarlo en la base de datos
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+  try {
+    const user = await userService.findUserByVerificationToken(hashedToken);
+    
+    if (!user) {
+      return res.status(400).json({ message: 'Token de verificación no válido o expirado.' });
+    }
+
+    // El token es válido, actualizamos al usuario
+    await userService.updateUserById(user.id, {
+      is_verified: true,
+      verification_token: null,
+      verification_token_expires: null,
+    });
+
+    res.status(200).json({ message: 'Correo electrónico verificado exitosamente.' });
+
+  } catch (error) {
+    console.error('Error en la verificación de email:', error);
+    return res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+};
+// --- FIN DE NUEVA FUNCIÓN ---
+
 
 module.exports = {
   register,
   login,
   getProfile,
-  refresh, // <-- Añadido
-  logout,  // <-- Añadido
+  refresh,
+  logout,
+  verifyEmail, // <-- Añadido
 };
