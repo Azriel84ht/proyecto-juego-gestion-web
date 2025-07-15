@@ -38,15 +38,6 @@ const findUserByVerificationToken = async (hashedToken) => {
   return rows[0];
 };
 
-// --- INICIO DE NUEVAS FUNCIONES ---
-
-/**
- * Añade un registro al historial de login de un usuario.
- * @param {string} userId
- * @param {string} ipAddress
- * @param {string} userAgent
- * @param {string} deviceInfo
- */
 const addLoginHistory = async (userId, ipAddress, userAgent, deviceInfo) => {
   const query = {
     text: `INSERT INTO login_history (user_id, ip_address, user_agent, device_info) VALUES ($1, $2, $3, $4)`,
@@ -55,11 +46,6 @@ const addLoginHistory = async (userId, ipAddress, userAgent, deviceInfo) => {
   await db.query(query);
 };
 
-/**
- * Obtiene el historial de login de un usuario.
- * @param {string} userId
- * @returns {Promise<Array>} Un array con el historial de logins.
- */
 const getLoginHistory = async (userId) => {
   const query = {
     text: 'SELECT * FROM login_history WHERE user_id = $1 ORDER BY login_timestamp DESC',
@@ -69,13 +55,11 @@ const getLoginHistory = async (userId) => {
   return rows;
 };
 
-// --- FIN DE NUEVAS FUNCIONES ---
-
 module.exports = {
   findUserByEmailOrUsername,
   createUser,
   updateUserById,
   findUserByVerificationToken,
-  addLoginHistory, // <-- Añadido
-  getLoginHistory, // <-- Añadido
+  addLoginHistory,
+  getLoginHistory,
 };

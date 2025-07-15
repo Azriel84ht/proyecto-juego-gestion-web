@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const UAParser = require('user-agent-parser');
+const UAParser = require('ua-parser-js');
 const userService = require('../services/user.service');
 const sendEmail = require('../services/email.service');
 
@@ -80,8 +80,7 @@ const login = async (req, res) => {
     }
     
     try {
-      const parser = new UAParser();
-      const ua = parser.setUA(req.headers['user-agent']).getResult();
+      const ua = UAParser(req.headers['user-agent']);
       const deviceInfo = `${ua.browser.name || 'N/A'} on ${ua.os.name || 'N/A'}`;
       userService.addLoginHistory(user.id, req.ip, req.headers['user-agent'], deviceInfo);
     } catch (trackingError) {
