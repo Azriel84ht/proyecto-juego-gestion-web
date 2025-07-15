@@ -10,9 +10,10 @@ router.post('/register', authController.register);
 router.post('/login', loginLimiter, authController.login);
 router.post('/refresh-token', refreshLimiter, authController.refresh);
 router.post('/logout', authController.logout);
-router.get('/verify-email', authController.verifyEmail); // <-- AÑADIDO
+router.get('/verify-email', authController.verifyEmail);
 
-// Ruta protegida
+// Rutas protegidas
 router.get('/profile', protect, authController.getProfile);
+router.get('/login-history', protect, authController.getLoginHistoryController); // <-- AÑADIDO
 
 module.exports = router;

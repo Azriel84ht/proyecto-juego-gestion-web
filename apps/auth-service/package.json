@@ -16,6 +16,7 @@
     "express-rate-limit": "^7.3.1",
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.9.14",
+    "user-agent-parser": "^1.0.0",
     "pg": "^8.11.5"
   },
   "devDependencies": {

@@ -16,18 +16,9 @@ const createUser = async (username, email, passwordHash) => {
   return rows[0];
 };
 
-// --- INICIO DE NUEVAS FUNCIONES ---
-
-/**
- * Actualiza campos específicos de un usuario por su ID.
- * @param {string} userId - El ID del usuario a actualizar.
- * @param {Object} fields - Un objeto con los campos y valores a actualizar. ej: { is_verified: true }
- * @returns {Promise<Object>} El usuario actualizado.
- */
 const updateUserById = async (userId, fields) => {
   const keys = Object.keys(fields);
   const values = Object.values(fields);
-  // Construye la parte SET de la consulta dinámicamente: "is_verified" = $2, "verification_token" = $3
   const setClause = keys.map((key, index) => `"${key}" = $${index + 2}`).join(', ');
 
   const query = {
@@ -39,11 +30,6 @@ const updateUserById = async (userId, fields) => {
   return rows[0];
 };
 
-/**
- * Busca un usuario por su token de verificación hasheado y no expirado.
- * @param {string} hashedToken - El token hasheado.
- * @returns {Promise<Object|null>} El usuario encontrado o null.
- */
 const findUserByVerificationToken = async (hashedToken) => {
   const { rows } = await db.query(
     'SELECT * FROM users WHERE verification_token = $1 AND verification_token_expires > NOW()',
@@ -52,11 +38,44 @@ const findUserByVerificationToken = async (hashedToken) => {
   return rows[0];
 };
 
+// --- INICIO DE NUEVAS FUNCIONES ---
+
+/**
+ * Añade un registro al historial de login de un usuario.
+ * @param {string} userId
+ * @param {string} ipAddress
+ * @param {string} userAgent
+ * @param {string} deviceInfo
+ */
+const addLoginHistory = async (userId, ipAddress, userAgent, deviceInfo) => {
+  const query = {
+    text: `INSERT INTO login_history (user_id, ip_address, user_agent, device_info) VALUES ($1, $2, $3, $4)`,
+    values: [userId, ipAddress, userAgent, deviceInfo],
+  };
+  await db.query(query);
+};
+
+/**
+ * Obtiene el historial de login de un usuario.
+ * @param {string} userId
+ * @returns {Promise<Array>} Un array con el historial de logins.
+ */
+const getLoginHistory = async (userId) => {
+  const query = {
+    text: 'SELECT * FROM login_history WHERE user_id = $1 ORDER BY login_timestamp DESC',
+    values: [userId],
+  };
+  const { rows } = await db.query(query);
+  return rows;
+};
+
 // --- FIN DE NUEVAS FUNCIONES ---
 
 module.exports = {
   findUserByEmailOrUsername,
   createUser,
-  updateUserById, // <-- Añadido
-  findUserByVerificationToken, // <-- Añadido
+  updateUserById,
+  findUserByVerificationToken,
+  addLoginHistory, // <-- Añadido
+  getLoginHistory, // <-- Añadido
 };
