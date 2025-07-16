@@ -8,12 +8,6 @@ const findUserByEmailOrUsername = async (email, username) => {
   return rows[0];
 };
 
-// --- FUNCIÓN 'createUser' MODIFICADA ---
-/**
- * Crea un nuevo usuario en la base de datos a partir de un objeto de datos.
- * @param {Object} userData - Objeto con los datos del usuario.
- * @returns {Promise<Object>} El usuario creado.
- */
 const createUser = async (userData) => {
   const columns = Object.keys(userData);
   const values = Object.values(userData);
@@ -68,24 +62,30 @@ const getLoginHistory = async (userId) => {
   return rows;
 };
 
-// --- INICIO DE NUEVA FUNCIÓN ---
-/**
- * Busca a un usuario por su ID de Google.
- * @param {string} googleId - El ID de perfil de Google.
- * @returns {Promise<Object|null>} El usuario encontrado o null.
- */
 const findUserByGoogleId = async (googleId) => {
   const { rows } = await db.query('SELECT * FROM users WHERE google_id = $1', [googleId]);
+  return rows[0];
+};
+
+// --- INICIO DE NUEVA FUNCIÓN ---
+/**
+ * Busca a un usuario por su ID de Facebook.
+ * @param {string} facebookId - El ID de perfil de Facebook.
+ * @returns {Promise<Object|null>} El usuario encontrado o null.
+ */
+const findUserByFacebookId = async (facebookId) => {
+  const { rows } = await db.query('SELECT * FROM users WHERE facebook_id = $1', [facebookId]);
   return rows[0];
 };
 // --- FIN DE NUEVA FUNCIÓN ---
 
 module.exports = {
   findUserByEmailOrUsername,
-  createUser, // Mantiene la exportación, pero con la nueva lógica
+  createUser,
   updateUserById,
   findUserByVerificationToken,
   addLoginHistory,
   getLoginHistory,
-  findUserByGoogleId, // <-- Añadido
+  findUserByGoogleId,
+  findUserByFacebookId, // <-- Añadido
 };

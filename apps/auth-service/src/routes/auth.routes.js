@@ -8,14 +8,11 @@ const { loginLimiter, refreshLimiter } = require('../middleware/rateLimiter');
 const router = Router();
 
 // --- RUTAS DE AUTENTICACIÓN CON GOOGLE ---
-
-// 1. Ruta para iniciar la autenticación con Google
 router.get(
   '/google',
   passport.authenticate('google', { scope: ['profile', 'email'], session: false })
 );
 
-// 2. Ruta de callback a la que Google redirige
 router.get(
   '/google/callback',
   passport.authenticate('google', { session: false, failureRedirect: '/login-failed' }),
@@ -26,7 +23,6 @@ router.get(
     // Generamos los mismos tokens que en el login normal
     const accessTokenPayload = { id: user.id, username: user.username };
     const accessToken = jwt.sign(accessTokenPayload, process.env.JWT_SECRET, { expiresIn: '1h' });
-
     const refreshTokenPayload = { id: user.id };
     const refreshToken = jwt.sign(refreshTokenPayload, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
@@ -39,14 +35,43 @@ router.get(
     });
     
     // Redirigimos al frontend, pasándole el access token como parámetro
-    // El frontend deberá leer este token y guardarlo.
+    res.redirect(`http://localhost:8080/auth/success?token=${accessToken}`);
+  }
+);
+
+
+// --- RUTAS DE AUTENTICACIÓN CON FACEBOOK ---
+router.get(
+  '/facebook',
+  // CORRECCIÓN: Se añaden ambos scopes, 'public_profile' y 'email'.
+  passport.authenticate('facebook', { scope: ['public_profile', 'email'], session: false })
+);
+
+router.get(
+  '/facebook/callback',
+  passport.authenticate('facebook', { session: false, failureRedirect: '/login-failed' }),
+  (req, res) => {
+    // La lógica es idéntica a la de Google
+    const user = req.user;
+
+    const accessTokenPayload = { id: user.id, username: user.username };
+    const accessToken = jwt.sign(accessTokenPayload, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const refreshTokenPayload = { id: user.id };
+    const refreshToken = jwt.sign(refreshTokenPayload, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    
     res.redirect(`http://localhost:8080/auth/success?token=${accessToken}`);
   }
 );
 
 
 // --- OTRAS RUTAS ---
-
 // Rutas públicas
 router.post('/register', authController.register);
 router.post('/login', loginLimiter, authController.login);
