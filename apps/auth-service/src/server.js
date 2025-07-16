@@ -1,5 +1,6 @@
 const express = require('express');
-const cookieParser = require('cookie-parser'); // <-- AÑADIDO
+const cookieParser = require('cookie-parser');
+const passport = require('passport'); // <-- AÑADIDO
 const { testConnection } = require('./config/db');
 const authRoutes = require('./routes/auth.routes');
 
@@ -8,7 +9,11 @@ const PORT = process.env.PORT || 3001;
 
 // Middlewares
 app.use(express.json());
-app.use(cookieParser()); // <-- AÑADIDO
+app.use(cookieParser());
+
+// Configuración de Passport
+app.use(passport.initialize()); // <-- AÑADIDO
+require('./config/passport-setup'); // <-- AÑADIDO (Ejecuta la configuración de la estrategia)
 
 // Probar conexión a la BD al iniciar
 testConnection();

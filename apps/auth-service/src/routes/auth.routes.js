@@ -1,9 +1,51 @@
 const { Router } = require('express');
+const passport = require('passport');
+const jwt = require('jsonwebtoken');
 const authController = require('../controllers/auth.controller');
 const { protect } = require('../middleware/auth.middleware');
 const { loginLimiter, refreshLimiter } = require('../middleware/rateLimiter');
 
 const router = Router();
+
+// --- RUTAS DE AUTENTICACIÓN CON GOOGLE ---
+
+// 1. Ruta para iniciar la autenticación con Google
+router.get(
+  '/google',
+  passport.authenticate('google', { scope: ['profile', 'email'], session: false })
+);
+
+// 2. Ruta de callback a la que Google redirige
+router.get(
+  '/google/callback',
+  passport.authenticate('google', { session: false, failureRedirect: '/login-failed' }),
+  (req, res) => {
+    // El usuario ha sido autenticado exitosamente por Passport y está en req.user
+    const user = req.user;
+
+    // Generamos los mismos tokens que en el login normal
+    const accessTokenPayload = { id: user.id, username: user.username };
+    const accessToken = jwt.sign(accessTokenPayload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    const refreshTokenPayload = { id: user.id };
+    const refreshToken = jwt.sign(refreshTokenPayload, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+
+    // Guardamos el refresh token en la cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    
+    // Redirigimos al frontend, pasándole el access token como parámetro
+    // El frontend deberá leer este token y guardarlo.
+    res.redirect(`http://localhost:8080/auth/success?token=${accessToken}`);
+  }
+);
+
+
+// --- OTRAS RUTAS ---
 
 // Rutas públicas
 router.post('/register', authController.register);
@@ -14,6 +56,6 @@ router.get('/verify-email', authController.verifyEmail);
 
 // Rutas protegidas
 router.get('/profile', protect, authController.getProfile);
-router.get('/login-history', protect, authController.getLoginHistoryController); // <-- AÑADIDO
+router.get('/login-history', protect, authController.getLoginHistoryController);
 
 module.exports = router;

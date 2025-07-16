@@ -17,7 +17,9 @@
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.9.14",
     "pg": "^8.11.5",
-    "ua-parser-js": "^1.0.37"
+    "ua-parser-js": "^1.0.37",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
