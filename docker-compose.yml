@@ -19,6 +19,18 @@ services:
       - webnet
     command: npm run dev --prefix apps/auth-service # Ejecuta en modo desarrollo
 
+  # --- NUEVO: Servicio de Cliente Web ---
+  web-client:
+    build:
+      context: ./apps/web-client  # Ruta a la aplicación frontend
+      dockerfile: Dockerfile        # Nombre del Dockerfile a usar
+    ports:
+      - "8080:80"                   # Mapea el puerto 8080 del host al 80 del contenedor
+    depends_on:
+      - auth-api                    # Asegura que el backend se inicie antes que el frontend
+    networks:
+      - webnet                      # Conecta el frontend a la misma red que el backend
+
   # Servicio de Base de Datos
   db:
     image: postgres:15-alpine
