@@ -27,13 +27,11 @@ const register = async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // --- LÍNEA MODIFICADA ---
     user = await userService.createUser({
       username,
       email,
       password_hash: passwordHash,
     });
-    // --- FIN DE LA MODIFICACIÓN ---
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
@@ -44,7 +42,10 @@ const register = async (req, res) => {
       verification_token_expires: tokenExpires,
     });
 
-    const verificationUrl = `${req.protocol}://${req.get('host')}/api/auth/verify-email?token=${verificationToken}`;
+    // --- LÍNEA MODIFICADA ---
+    const verificationUrl = `${process.env.SERVER_PROTOCOL}://${process.env.SERVER_HOST}:${process.env.SERVER_PORT}/api/auth/verify-email?token=${verificationToken}`;
+    // --- FIN DE LA MODIFICACIÓN ---
+
     const message = `Por favor, verifica tu cuenta haciendo clic en el siguiente enlace: \n\n ${verificationUrl}`;
     
     await sendEmail({
