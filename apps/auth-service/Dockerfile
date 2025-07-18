@@ -1,28 +1,22 @@
-# Usa una imagen base oficial de Node.js 20
-FROM node:20-slim
+# apps/auth-service/Dockerfile
 
-# Establece el directorio de trabajo raíz dentro del contenedor
+# Etapa 1: Instalar dependencias
+FROM node:20-slim AS base
 WORKDIR /usr/src/app
 
-# Copia los archivos de definición de paquetes para instalar dependencias primero
-# Esto aprovecha el caché de capas de Docker
-COPY ./apps/auth-service/package*.json ./apps/auth-service/
-
-# Navega al directorio del servicio e instala las dependencias
-WORKDIR /usr/src/app/apps/auth-service
+# Copia solo los archivos de dependencias y las instala
+# Esto aprovecha el caché de Docker. No se reinstalará todo si solo cambias el código.
+COPY package*.json ./
 RUN npm install
 
-# Vuelve al directorio de trabajo raíz de la app
+# Etapa 2: Preparar la aplicación
+FROM node:20-slim
 WORKDIR /usr/src/app
 
-# Copia el resto del código fuente del proyecto
+# Copia las dependencias instaladas de la etapa anterior
+COPY --from=base /usr/src/app/node_modules ./node_modules
+# Copia el código de la aplicación
 COPY . .
 
-# Expone el puerto en el que corre la aplicación
 EXPOSE ${AUTH_SERVICE_PORT}
-
-# APLICA LOS PERMISOS AL FINAL, DESPUÉS DE COPIAR TODO
-RUN chmod +x apps/auth-service/node_modules/.bin/nodemon
-
-# Comando para ejecutar la aplicación (será sobreescrito por docker-compose en desarrollo)
-CMD [ "node", "apps/auth-service/src/server.js" ]
+CMD [ "npm", "run", "dev" ]

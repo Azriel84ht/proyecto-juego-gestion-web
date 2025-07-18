@@ -2,34 +2,34 @@ services:
   # Servicio de Autenticación
   auth-api:
     build:
-      context: .
-      dockerfile: ./apps/auth-service/Dockerfile
+      context: ./apps/auth-service
+      dockerfile: Dockerfile
     ports:
       - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
     volumes:
-      # Monta el código para reflejar cambios en desarrollo sin reconstruir la imagen
-      - .:/usr/src/app
-      # Usa un volumen anónimo para no sobrescribir node_modules del contenedor
-      - /usr/src/app/apps/auth-service/node_modules
+      # Monta solo el código para hot-reloading en el backend.
+      - ./apps/auth-service:/usr/src/app
+      - /usr/src/app/node_modules
     env_file:
-      - .env # Carga variables de entorno desde el archivo .env
+      - .env
     depends_on:
-      - db # Asegura que la base de datos inicie antes que la API
+      - db
     networks:
       - webnet
-    command: npm run dev --prefix apps/auth-service # Ejecuta en modo desarrollo
 
-  # --- NUEVO: Servicio de Cliente Web ---
+  # Servicio de Cliente Web
   web-client:
     build:
-      context: ./apps/web-client  # Ruta a la aplicación frontend
-      dockerfile: Dockerfile        # Nombre del Dockerfile a usar
+      context: ./apps/web-client
+      dockerfile: Dockerfile
     ports:
-      - "8080:80"                   # Mapea el puerto 8080 del host al 80 del contenedor
+      - "8080:80"
     depends_on:
-      - auth-api                    # Asegura que el backend se inicie antes que el frontend
+      - auth-api
     networks:
-      - webnet                      # Conecta el frontend a la misma red que el backend
+      - webnet
+    # <--- CORRECCIÓN CLAVE: Se ha eliminado la sección 'volumes' de aquí
+    # ya que el Dockerfile maneja la compilación y copia de archivos para producción.
 
   # Servicio de Base de Datos
   db:
@@ -40,7 +40,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     volumes:
-      - postgres_data:/var/lib/postgresql/data # Persistencia de datos
+      - postgres_data:/var/lib/postgresql/data
     ports:
       - "${DB_PORT}:5432"
     networks:
