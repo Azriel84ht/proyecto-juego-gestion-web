@@ -26,7 +26,14 @@ const register = async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    user = await userService.createUser(username, email, passwordHash);
+
+    // --- LÍNEA MODIFICADA ---
+    user = await userService.createUser({
+      username,
+      email,
+      password_hash: passwordHash,
+    });
+    // --- FIN DE LA MODIFICACIÓN ---
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex');

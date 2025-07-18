@@ -1,20 +1,19 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const passport = require('passport');
-const cors = require('cors'); // <-- AÑADIDO
+const cors = require('cors');
 const { testConnection } = require('./config/db');
 const authRoutes = require('./routes/auth.routes');
 
 const app = express();
+app.set('trust proxy', 1); // <-- AÑADIDO
 const PORT = process.env.PORT || 3001;
 
-// --- INICIO DE CONFIGURACIÓN DE CORS ---
 const corsOptions = {
-  origin: 'http://localhost:8080', // Permite solo peticiones desde el cliente web
-  credentials: true, // Permite el envío de cookies
+  origin: 'http://localhost:8080',
+  credentials: true,
 };
 app.use(cors(corsOptions));
-// --- FIN DE CONFIGURACIÓN DE CORS ---
 
 // Middlewares
 app.use(express.json());
