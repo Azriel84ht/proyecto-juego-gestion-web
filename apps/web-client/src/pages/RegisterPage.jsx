@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import axios from 'axios';
+import './AuthPages.css';
 
 function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -11,73 +13,61 @@ function RegisterPage() {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, email, password }),
+      const { data } = await axios.post('/api/auth/register', {
+        username,
+        email,
+        password,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Error en el registro');
-      }
-
-      setMessage({ type: 'success', text: '¡Registro exitoso! Ahora puedes iniciar sesión.' });
-
+      setMessage({ type: 'success', text: data.message });
     } catch (error) {
-      setMessage({ type: 'error', text: error.message });
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Error en el registro',
+      });
     }
   };
 
   return (
-    <div className="form-container">
-      <form onSubmit={handleSubmit}>
+    <div className="auth-page">
+      <div className="auth-container">
         <h2>Crear Cuenta</h2>
-        
-        <div className="form-group">
-          <label htmlFor="username">Nombre de Usuario</label>
-          <input
-            type="text"
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="email">Correo Electrónico</label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="password">Contraseña</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-
-        <button type="submit">Registrarse</button>
-
-        {message && (
-          <div className={`message ${message.type}`}>
-            {message.text}
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="username">Nombre de Usuario</label>
+            <input
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
           </div>
-        )}
-      </form>
+          <div className="form-group">
+            <label htmlFor="email">Correo Electrónico</label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="password">Contraseña</label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          <button type="submit">Registrarse</button>
+          {message && (
+            <div className={`message ${message.type}`}>{message.text}</div>
+          )}
+        </form>
+      </div>
     </div>
   );
 }

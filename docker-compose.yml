@@ -6,6 +6,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
+      - "3001:3001"
     volumes:
       # Monta solo el código para hot-reloading en el backend.
       - ./apps/auth-service:/usr/src/app
@@ -24,6 +25,15 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:80"
+    depends_on:
+      - auth-api
+    networks:
+      - webnet
+
+  web-client-test:
+    build:
+      context: ./apps/web-client
+      dockerfile: Dockerfile.dev
     depends_on:
       - auth-api
     networks:

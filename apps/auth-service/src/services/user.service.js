@@ -45,10 +45,15 @@ const findUserByVerificationToken = async (hashedToken) => {
   return rows[0];
 };
 
+const geoip = require('geoip-lite');
+
 const addLoginHistory = async (userId, ipAddress, userAgent, deviceInfo) => {
+  const geo = geoip.lookup(ipAddress);
+  const location = geo ? `${geo.city}, ${geo.country}` : 'Unknown';
+
   const query = {
-    text: `INSERT INTO login_history (user_id, ip_address, user_agent, device_info) VALUES ($1, $2, $3, $4)`,
-    values: [userId, ipAddress, userAgent, deviceInfo],
+    text: `INSERT INTO login_history (user_id, ip_address, user_agent, device_info, location) VALUES ($1, $2, $3, $4, $5)`,
+    values: [userId, ipAddress, userAgent, deviceInfo, location],
   };
   await db.query(query);
 };
@@ -79,6 +84,23 @@ const findUserByFacebookId = async (facebookId) => {
 };
 // --- FIN DE NUEVA FUNCIÓN ---
 
+const findUserByPasswordResetToken = async (hashedToken) => {
+  const { rows } = await db.query(
+    'SELECT * FROM users WHERE password_reset_token = $1 AND password_reset_token_expires > NOW()',
+    [hashedToken]
+  );
+  return rows[0];
+};
+
+const findUserById = async (id) => {
+  const { rows } = await db.query('SELECT * FROM users WHERE id = $1', [id]);
+  return rows[0];
+};
+
+const deleteUserById = async (id) => {
+  await db.query('DELETE FROM users WHERE id = $1', [id]);
+};
+
 module.exports = {
   findUserByEmailOrUsername,
   createUser,
@@ -88,4 +110,7 @@ module.exports = {
   getLoginHistory,
   findUserByGoogleId,
   findUserByFacebookId, // <-- Añadido
+  findUserByPasswordResetToken,
+  findUserById,
+  deleteUserById,
 };

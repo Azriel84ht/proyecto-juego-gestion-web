@@ -29,6 +29,6 @@ testConnection();
 // Rutas de la API
 app.use('/api/auth', authRoutes);
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Auth service escuchando en el puerto ${PORT}`);
 });
