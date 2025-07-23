@@ -11,8 +11,9 @@ const register = async (req, res) => {
   if (!username || !email || !password) {
     return res.status(400).json({ message: 'Todos los campos son obligatorios.' });
   }
-  if (password.length < 8) {
-    return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres.' });
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!passwordRegex.test(password)) {
+    return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres, una letra mayúscula, una letra minúscula, un número y un carácter especial.' });
   }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
@@ -182,6 +183,210 @@ const getLoginHistoryController = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: 'El correo electrónico es obligatorio.' });
+  }
+
+  try {
+    const user = await userService.findUserByEmailOrUsername(email, null);
+    if (!user) {
+      return res.status(404).json({ message: 'No se encontró un usuario con ese correo electrónico.' });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const tokenExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+    await userService.updateUserById(user.id, {
+      password_reset_token: hashedToken,
+      password_reset_token_expires: tokenExpires,
+    });
+
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+    const message = `Has solicitado un reseteo de contraseña. Por favor, haz clic en el siguiente enlace para resetear tu contraseña: \n\n ${resetUrl}`;
+
+    await sendEmail({
+      email: user.email,
+      subject: 'Reseteo de Contraseña',
+      message,
+    });
+
+    return res.status(200).json({ message: 'Se ha enviado un correo electrónico con las instrucciones para resetear la contraseña.' });
+
+  } catch (error) {
+    console.error('Error en forgotPassword:', error);
+    return res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) {
+    return res.status(400).json({ message: 'El token y la nueva contraseña son obligatorios.' });
+  }
+
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!passwordRegex.test(password)) {
+    return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres, una letra mayúscula, una letra minúscula, un número y un carácter especial.' });
+  }
+
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+  try {
+    const user = await userService.findUserByPasswordResetToken(hashedToken);
+    if (!user) {
+      return res.status(400).json({ message: 'Token de reseteo de contraseña no válido o expirado.' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await userService.updateUserById(user.id, {
+      password_hash: passwordHash,
+      password_reset_token: null,
+      password_reset_token_expires: null,
+    });
+
+    return res.status(200).json({ message: 'La contraseña ha sido reseteada exitosamente.' });
+
+  } catch (error) {
+    console.error('Error en resetPassword:', error);
+    return res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+};
+
+const { authenticator } = require('otplib');
+const qrcode = require('qrcode');
+
+const generateTwoFactorSecret = async (req, res) => {
+  const secret = authenticator.generateSecret();
+  const user = req.user;
+
+  await userService.updateUserById(user.id, { two_factor_secret: secret });
+
+  const otpauth = authenticator.keyuri(user.email, 'YourApp', secret);
+
+  qrcode.toDataURL(otpauth, (err, imageUrl) => {
+    if (err) {
+      console.error('Error with QR:', err);
+      return res.status(500).json({ message: 'Error al generar el código QR.' });
+    }
+    res.json({ secret, qrCodeUrl: imageUrl });
+  });
+};
+
+const enableTwoFactor = async (req, res) => {
+  const { token } = req.body;
+  const user = req.user;
+
+  const isValid = authenticator.check(token, user.two_factor_secret);
+
+  if (!isValid) {
+    return res.status(400).json({ message: 'Token 2FA no válido.' });
+  }
+
+  await userService.updateUserById(user.id, { two_factor_enabled: true });
+
+  res.json({ message: '2FA activado correctamente.' });
+};
+
+const disableTwoFactor = async (req, res) => {
+  const user = req.user;
+  await userService.updateUserById(user.id, { two_factor_enabled: false, two_factor_secret: null });
+  res.json({ message: '2FA desactivado correctamente.' });
+};
+
+const verifyTwoFactor = async (req, res) => {
+  const { userId, token } = req.body;
+
+  try {
+    const user = await userService.findUserById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado.' });
+    }
+
+    const isValid = authenticator.check(token, user.two_factor_secret);
+
+    if (!isValid) {
+      return res.status(400).json({ message: 'Token 2FA no válido.' });
+    }
+
+    const accessTokenPayload = { id: user.id, username: user.username };
+    const accessToken = jwt.sign(accessTokenPayload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    const refreshTokenPayload = { id: user.id };
+    const refreshToken = jwt.sign(refreshTokenPayload, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    if (user.two_factor_enabled) {
+      return res.status(200).json({ twoFactorEnabled: true, userId: user.id });
+    }
+
+    res.status(200).json({ accessToken });
+
+  } catch (error) {
+    console.error('Error en verifyTwoFactor:', error);
+    return res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+};
+
+const updateProfile = async (req, res) => {
+  const { username, email } = req.body;
+  const user = req.user;
+
+  try {
+    const updatedUser = await userService.updateUserById(user.id, { username, email });
+    res.json(updatedUser);
+  } catch (error) {
+    console.error('Error en updateProfile:', error);
+    res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+};
+
+const updatePassword = async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const user = req.user;
+
+  try {
+    const isMatch = await bcrypt.compare(oldPassword, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'La contraseña actual es incorrecta.' });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({ message: 'La nueva contraseña debe tener al menos 8 caracteres, una letra mayúscula, una letra minúscula, un número y un carácter especial.' });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await userService.updateUserById(user.id, { password_hash: passwordHash });
+
+    res.json({ message: 'Contraseña actualizada correctamente.' });
+  } catch (error) {
+    console.error('Error en updatePassword:', error);
+    res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+};
+
+const deleteAccount = async (req, res) => {
+  const user = req.user;
+
+  try {
+    await userService.deleteUserById(user.id);
+    res.json({ message: 'Cuenta eliminada correctamente.' });
+  } catch (error) {
+    console.error('Error en deleteAccount:', error);
+    res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -190,4 +395,13 @@ module.exports = {
   logout,
   verifyEmail,
   getLoginHistoryController,
+  forgotPassword,
+  resetPassword,
+  generateTwoFactorSecret,
+  enableTwoFactor,
+  disableTwoFactor,
+  verifyTwoFactor,
+  updateProfile,
+  updatePassword,
+  deleteAccount,
 };

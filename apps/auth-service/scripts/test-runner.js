@@ -18,9 +18,9 @@ if (!testName) {
 const testFilePath = path.join(__dirname, '..', 'tests', `${testName}.test.js`);
 
 try {
-  // 4. Ejecutamos el test usando 'node' y mostramos su salida en la consola.
+  // 4. Ejecutamos el test usando 'mocha' y mostramos su salida en la consola.
   console.log(`🚀 Ejecutando test: ${testName}...`);
-  execSync(`node ${testFilePath}`, { stdio: 'inherit' });
+  execSync(`node ./node_modules/mocha/bin/mocha ${testFilePath}`, { stdio: 'inherit' });
 } catch (error) {
   // 5. Si el comando falla (p. ej., el archivo no existe), lo notificamos.
   console.error(`\n❌ Error al ejecutar el test '${testName}'.`);

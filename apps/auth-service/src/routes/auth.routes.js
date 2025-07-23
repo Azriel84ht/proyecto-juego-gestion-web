@@ -81,9 +81,22 @@ router.post('/login', loginLimiter, authController.login);
 router.post('/refresh-token', refreshLimiter, authController.refresh);
 router.post('/logout', authController.logout);
 router.get('/verify-email', authController.verifyEmail);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
 
 // Rutas protegidas
 router.get('/profile', protect, authController.getProfile);
 router.get('/login-history', protect, authController.getLoginHistoryController);
+
+// Rutas de 2FA
+router.post('/2fa/generate', protect, authController.generateTwoFactorSecret);
+router.post('/2fa/enable', protect, authController.enableTwoFactor);
+router.post('/2fa/disable', protect, authController.disableTwoFactor);
+router.post('/2fa/verify', authController.verifyTwoFactor);
+
+// Rutas de gestión de cuenta
+router.put('/profile', protect, authController.updateProfile);
+router.put('/password', protect, authController.updatePassword);
+router.delete('/profile', protect, authController.deleteAccount);
 
 module.exports = router;
