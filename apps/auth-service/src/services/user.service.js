@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const geoip = require('fast-geoip'); // <-- CAMBIADO
 
 const findUserByEmailOrUsername = async (email, username) => {
   const { rows } = await db.query(
@@ -48,8 +49,8 @@ const findUserByVerificationToken = async (hashedToken) => {
 const geoip = require('geoip-lite');
 
 const addLoginHistory = async (userId, ipAddress, userAgent, deviceInfo) => {
-  const geo = geoip.lookup(ipAddress);
-  const location = geo ? `${geo.city}, ${geo.country}` : 'Unknown';
+  const geo = await geoip.lookup(ipAddress); // <-- AÑADIDO 'await'
+  const location = geo ? `${geo.city}, ${geo.country}` : 'Desconocida';
 
   const query = {
     text: `INSERT INTO login_history (user_id, ip_address, user_agent, device_info, location) VALUES ($1, $2, $3, $4, $5)`,
@@ -72,17 +73,27 @@ const findUserByGoogleId = async (googleId) => {
   return rows[0];
 };
 
-// --- INICIO DE NUEVA FUNCIÓN ---
-/**
- * Busca a un usuario por su ID de Facebook.
- * @param {string} facebookId - El ID de perfil de Facebook.
- * @returns {Promise<Object|null>} El usuario encontrado o null.
- */
 const findUserByFacebookId = async (facebookId) => {
   const { rows } = await db.query('SELECT * FROM users WHERE facebook_id = $1', [facebookId]);
   return rows[0];
 };
-// --- FIN DE NUEVA FUNCIÓN ---
+
+const findUserByPasswordResetToken = async (hashedToken) => {
+  const { rows } = await db.query(
+    'SELECT * FROM users WHERE password_reset_token = $1 AND password_reset_token_expires > NOW()',
+    [hashedToken]
+  );
+  return rows[0];
+};
+
+const findUserById = async (id) => {
+  const { rows } = await db.query('SELECT * FROM users WHERE id = $1', [id]);
+  return rows[0];
+};
+
+const deleteUserById = async (id) => {
+  await db.query('DELETE FROM users WHERE id = $1', [id]);
+};
 
 const findUserByPasswordResetToken = async (hashedToken) => {
   const { rows } = await db.query(
@@ -109,7 +120,7 @@ module.exports = {
   addLoginHistory,
   getLoginHistory,
   findUserByGoogleId,
-  findUserByFacebookId, // <-- Añadido
+  findUserByFacebookId,
   findUserByPasswordResetToken,
   findUserById,
   deleteUserById,
