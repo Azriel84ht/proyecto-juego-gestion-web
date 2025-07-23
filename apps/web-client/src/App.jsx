@@ -15,38 +15,45 @@ const PrivateRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" />;
 };
 
+import Navbar from './components/Navbar';
+import HomePage from './pages/HomePage';
+
 function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/verify-email" element={<VerifyEmailPage />} />
-      <Route path="/2fa" element={<TwoFactorAuthPage />} />
-      <Route
-        path="/profile"
-        element={
-          <PrivateRoute>
-            <ProfilePage />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/account"
-        element={
-          <PrivateRoute>
-            <AccountPage />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/login-history"
-        element={
-          <PrivateRoute>
-            <LoginHistoryPage />
-          </PrivateRoute>
-        }
-      />
-    </Routes>
+    <>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/2fa" element={<TwoFactorAuthPage />} />
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <ProfilePage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/account"
+          element={
+            <PrivateRoute>
+              <AccountPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/login-history"
+          element={
+            <PrivateRoute>
+              <LoginHistoryPage />
+            </PrivateRoute>
+          }
+        />
+      </Routes>
+    </>
   );
 }
 
