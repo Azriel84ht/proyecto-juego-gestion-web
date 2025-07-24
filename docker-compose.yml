@@ -51,6 +51,7 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./apps/auth-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "${DB_PORT}:5432"
     networks:
