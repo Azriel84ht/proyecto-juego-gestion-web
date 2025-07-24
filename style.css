@@ -1,0 +1,125 @@
+@import url('https://fonts.googleapis.com/css2?family=Creepster&display=swap');
+
+body {
+    background-color: #1a1a1a;
+    color: #f0f0f0;
+    font-family: 'Creepster', cursive;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+.container {
+    padding: 2rem;
+}
+
+.hero {
+    background: url('https://www.transparenttextures.com/patterns/dark-matter.png'), #1a1a1a;
+    color: #ff4d4d;
+    text-align: center;
+    padding: 4rem 0;
+}
+
+.hero h1 {
+    font-size: 4rem;
+    margin: 0;
+    text-shadow: 3px 3px 6px #000;
+}
+
+#cta-button {
+    background-color: #8a0303;
+    color: #f0f0f0;
+    border: 2px solid #ff4d4d;
+    padding: 1rem 2rem;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 10px #ff4d4d, 0 0 20px #ff4d4d, 0 0 30px #ff4d4d;
+}
+
+#cta-button:hover {
+    background-color: #ff4d4d;
+    color: #1a1a1a;
+    border-color: #8a0303;
+    box-shadow: 0 0 20px #ff4d4d, 0 0 40px #ff4d4d, 0 0 60px #ff4d4d;
+}
+
+.creature-gallery {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+}
+
+.creature-card {
+    background-color: #2a2a2a;
+    border: 2px solid #4a4a4a;
+    border-radius: 10px;
+    padding: 1rem;
+    margin: 1rem;
+    width: 200px;
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.creature-card:hover {
+    transform: translateY(-10px) rotateZ(5deg);
+    border-color: #ff4d4d;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+}
+
+#alchemy, #news {
+    background-color: #2a2a2a;
+    padding: 2rem;
+    margin: 2rem 0;
+    border-top: 5px solid #8a0303;
+    border-bottom: 5px solid #8a0303;
+}
+
+#alchemy p, #news p {
+    max-width: 800px;
+    margin: 0 auto;
+    font-size: 1.2rem;
+    line-height: 1.6;
+}
+
+#cursor-eye {
+    width: 50px;
+    height: 50px;
+    background-color: #fff;
+    border-radius: 50%;
+    position: fixed;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 9999;
+    border: 3px solid #8a0303;
+    transition: width 0.2s, height 0.2s;
+}
+
+#pupil {
+    width: 20px;
+    height: 20px;
+    background-color: #000;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+footer {
+    text-align: center;
+    padding: 1rem;
+    background-color: #0d0d0d;
+    color: #4a4a4a;
+}
+
+@keyframes wobble {
+    0%, 100% {
+        transform: translateY(-10px) rotateZ(var(--rotation));
+    }
+    50% {
+        transform: translateY(-10px) rotateZ(calc(var(--rotation) * -1));
+    }
+}
