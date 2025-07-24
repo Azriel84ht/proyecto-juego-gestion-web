@@ -6,15 +6,15 @@ services:
       dockerfile: Dockerfile
     ports:
       - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
-      - "3001:3001"
     volumes:
-      # Monta solo el código para hot-reloading en el backend.
+      # Monta el código para reflejar cambios en desarrollo
       - ./apps/auth-service:/usr/src/app
+      # Usa un volumen anónimo para no sobrescribir node_modules
       - /usr/src/app/node_modules
     env_file:
       - .env
     depends_on:
-      db:
+      db: # Sintaxis correcta para esperar a que la DB esté saludable
         condition: service_healthy
     networks:
       - webnet
@@ -31,17 +31,6 @@ services:
     networks:
       - webnet
 
-  web-client-test:
-    build:
-      context: ./apps/web-client
-      dockerfile: Dockerfile.dev
-    depends_on:
-      - auth-api
-    networks:
-      - webnet
-    # <--- CORRECCIÓN CLAVE: Se ha eliminado la sección 'volumes' de aquí
-    # ya que el Dockerfile maneja la compilación y copia de archivos para producción.
-
   # Servicio de Base de Datos
   db:
     image: postgres:15-alpine
@@ -52,11 +41,17 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Monta el script de inicialización para que se ejecute en el primer arranque
       - ./apps/auth-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "${DB_PORT}:5432"
     networks:
       - webnet
+    healthcheck: # Comprobación de salud para evitar condiciones de carrera
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 # Red para la comunicación entre contenedores
 networks:
