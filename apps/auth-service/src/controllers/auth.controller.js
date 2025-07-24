@@ -43,9 +43,7 @@ const register = async (req, res) => {
       verification_token_expires: tokenExpires,
     });
 
-    // --- LÍNEA MODIFICADA ---
-    const verificationUrl = `${process.env.SERVER_PROTOCOL}://${process.env.SERVER_HOST}:${process.env.SERVER_PORT}/api/auth/verify-email?token=${verificationToken}`;
-    // --- FIN DE LA MODIFICACIÓN ---
+    const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
 
     const message = `Por favor, verifica tu cuenta haciendo clic en el siguiente enlace: \n\n ${verificationUrl}`;
     
