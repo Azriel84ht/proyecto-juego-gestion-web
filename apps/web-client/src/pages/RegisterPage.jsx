@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import Popup from '../components/Popup';
 import './AuthPages.css';
 
 function RegisterPage() {
@@ -7,6 +9,8 @@ function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState(null);
+  const [showPopup, setShowPopup] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,7 +22,7 @@ function RegisterPage() {
         email,
         password,
       });
-      setMessage({ type: 'success', text: data.message });
+      setShowPopup(true);
     } catch (error) {
       setMessage({
         type: 'error',
@@ -27,8 +31,19 @@ function RegisterPage() {
     }
   };
 
+  const handlePopupClose = () => {
+    setShowPopup(false);
+    navigate('/');
+  };
+
   return (
     <div className="auth-page">
+      {showPopup && (
+        <Popup
+          message="Registro completado correctamente, por favor, revisa tu email"
+          onClose={handlePopupClose}
+        />
+      )}
       <div className="auth-container">
         <h2>Crear Cuenta</h2>
         <form onSubmit={handleSubmit}>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 
+import './VerifyEmailPage.css';
+
 function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState('verifying'); // 'verifying', 'success', 'error'
@@ -40,24 +42,26 @@ function VerifyEmailPage() {
       case 'success':
         return (
           <>
-            <div className="message success">{message}</div>
+            <p className="message success">{message}</p>
             <Link to="/login" style={{ textDecoration: 'none', marginTop: '1rem' }}>
               <button>Ir a Iniciar Sesión</button>
             </Link>
           </>
         );
       case 'error':
-        return <div className="message error">{message}</div>;
+        return <p className="message error">{message}</p>;
       case 'verifying':
       default:
-        return <div className="message">{message}</div>;
+        return <p className="message">{message}</p>;
     }
   };
 
   return (
-    <div className="form-container">
-      <h2>Verificación de Cuenta</h2>
-      {renderContent()}
+    <div className="verify-email-page">
+      <div className="verify-email-container">
+        <h2>Verificación de Cuenta</h2>
+        {renderContent()}
+      </div>
     </div>
   );
 }
