@@ -9,6 +9,8 @@ import AccountPage from './pages/AccountPage';
 import LoginHistoryPage from './pages/LoginHistoryPage';
 import TwoFactorAuthPage from './pages/TwoFactorAuthPage';
 import './App.css';
+import AdminRoute from './components/AdminRoute';
+import AdminPage from './pages/AdminPage';
 
 const PrivateRoute = ({ children }) => {
   const { user } = useContext(AuthContext);
@@ -50,6 +52,14 @@ function App() {
             <PrivateRoute>
               <LoginHistoryPage />
             </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminPage />
+            </AdminRoute>
           }
         />
       </Routes>

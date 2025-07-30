@@ -310,7 +310,7 @@ const verifyTwoFactor = async (req, res) => {
       return res.status(400).json({ message: 'Token 2FA no válido.' });
     }
 
-    const accessTokenPayload = { id: user.id, username: user.username };
+    const accessTokenPayload = { id: user.id, username: user.username, role: user.role };
     const accessToken = jwt.sign(accessTokenPayload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     const refreshTokenPayload = { id: user.id };

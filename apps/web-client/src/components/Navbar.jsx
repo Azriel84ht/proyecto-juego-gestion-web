@@ -14,6 +14,11 @@ function Navbar() {
       <ul className="navbar-nav">
         {user ? (
           <>
+            {user.role === 'admin' && (
+              <li>
+                <Link to="/admin">Admin</Link>
+              </li>
+            )}
             <li>
               <Link to="/profile">Perfil</Link>
             </li>

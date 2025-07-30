@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
     two_factor_secret VARCHAR(255),
     two_factor_enabled BOOLEAN DEFAULT FALSE,
     two_factor_recovery_codes TEXT[],
+    role VARCHAR(50) DEFAULT 'user',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
