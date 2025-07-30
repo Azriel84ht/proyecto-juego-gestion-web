@@ -94,7 +94,7 @@ const login = async (req, res) => {
       console.error('Error al registrar el historial de login:', trackingError);
     }
 
-    const accessTokenPayload = { id: user.id, username: user.username };
+    const accessTokenPayload = { id: user.id, username: user.username, role: user.role };
     const accessToken = jwt.sign(accessTokenPayload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     const refreshTokenPayload = { id: user.id };

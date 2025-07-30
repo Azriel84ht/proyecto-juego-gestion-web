@@ -1,0 +1,43 @@
+.verify-email-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #1a1a2e;
+}
+
+.verify-email-container {
+  padding: 2rem;
+  background-color: #2a2a3e;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.verify-email-container h2 {
+  margin-bottom: 1.5rem;
+  color: #fff;
+}
+
+.verify-email-container p {
+  margin-bottom: 1.5rem;
+  color: #a9a9a9;
+}
+
+.verify-email-container .message {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 5px;
+}
+
+.verify-email-container .message.success {
+  background-color: #28a745;
+  color: #fff;
+}
+
+.verify-email-container .message.error {
+  background-color: #dc3545;
+  color: #fff;
+}
